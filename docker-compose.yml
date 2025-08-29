@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  videoparty-server:
+    build: ./server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - MEDIA_DIR=/media
+      - ORIGIN=${NETLIFY_URL:-http://localhost:5173}
+      - SHARED_TOKEN=${SHARED_TOKEN:-}
+    volumes:
+      - ${MEDIA_DIR:-./media}:/media:ro
+    restart: unless-stopped

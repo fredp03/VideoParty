@@ -119,6 +119,9 @@ ORIGIN=https://your-site.netlify.app  # Frontend URL
 SHARED_TOKEN=secret123            # Optional auth token
 ```
 
+Clients can send the shared token using the `Authorization` header, a `token` query
+parameter, or a `token` cookie.
+
 ### Frontend Environment Variables
 ```env
 VITE_MEDIA_BASE_URL=https://watch.example.com

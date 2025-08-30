@@ -124,10 +124,21 @@ Health check endpoint.
 ### GET /api/videos
 List all available videos.
 
-**Headers** (if `SHARED_TOKEN` is set):
+**Authentication** (if `SHARED_TOKEN` is set):
+
+Provide the token using one of the following:
+
 ```
 Authorization: Bearer YOUR_TOKEN
 ```
+
+Or as a query parameter:
+
+```
+?token=YOUR_TOKEN
+```
+
+Or via a cookie named `token`.
 
 **Response:**
 ```json
@@ -145,9 +156,12 @@ Authorization: Bearer YOUR_TOKEN
 ### GET /media/:path
 Stream video/caption files with Range support.
 
-**Headers** (if `SHARED_TOKEN` is set):
+**Authentication** (if `SHARED_TOKEN` is set):
+
+Token may be supplied in the `Authorization` header, a `token` query parameter, or a `token` cookie.
+
+**Headers**:
 ```
-Authorization: Bearer YOUR_TOKEN
 Range: bytes=0-1023
 ```
 

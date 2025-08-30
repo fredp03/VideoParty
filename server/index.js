@@ -44,14 +44,32 @@ app.use(express.json())
 // Auth middleware for API routes
 const authMiddleware = (req, res, next) => {
   if (SHARED_TOKEN) {
+    let token
+
+    // Authorization header
     const authHeader = req.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid authorization header' })
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
     }
-    
-    const token = authHeader.substring(7)
+
+    // Query string
+    if (!token && req.query && req.query.token) {
+      token = req.query.token
+    }
+
+    // Cookie header
+    if (!token && req.headers.cookie) {
+      const cookies = Object.fromEntries(
+        req.headers.cookie.split(';').map(c => {
+          const [k, v] = c.trim().split('=')
+          return [k, decodeURIComponent(v)]
+        })
+      )
+      token = cookies.token
+    }
+
     if (token !== SHARED_TOKEN) {
-      return res.status(401).json({ error: 'Invalid token' })
+      return res.status(401).json({ error: 'Invalid or missing token' })
     }
   }
   next()

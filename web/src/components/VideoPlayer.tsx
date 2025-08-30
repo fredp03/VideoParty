@@ -20,6 +20,7 @@ function VideoPlayer() {
   const [isApplyingRemote, setIsApplyingRemote] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState(0)
   const [audioBlocked, setAudioBlocked] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   
   const {
     selectedVideo,
@@ -78,8 +79,10 @@ function VideoPlayer() {
         await wsClient.connect(roomId, clientId)
         
         wsClient.onMessage((message: WSMessage) => {
-          if (message.clientId === clientId) return // Ignore own messages
+          // Don't ignore server messages (for room state sync)
+          if (message.clientId === clientId && message.clientId !== 'server') return
           
+          console.log('Received WebSocket message:', message)
           handleRemoteMessage(message)
         })
       } catch (error) {
@@ -95,22 +98,65 @@ function VideoPlayer() {
   }, [roomId, clientId, wsClient])
 
   // Handle remote WebSocket messages
-  const handleRemoteMessage = (message: WSMessage) => {
+  const handleRemoteMessage = async (message: WSMessage) => {
     const video = videoRef.current
     if (!video || isApplyingRemote) return
 
-    const loadVideoFromUrl = (videoUrl: string) => {
-      const relPath = decodeURIComponent(videoUrl.replace(/^\/media\//, ''))
-      const name = relPath.split('/').pop()?.replace(/\.[^/.]+$/, '') || relPath
-      const newVideo: VideoInfo = {
-        id: btoa(relPath),
-        name,
-        relPath,
-        url: videoUrl
+    const loadVideoFromUrl = async (videoUrl: string, fromRoomState = false) => {
+      try {
+        console.log('Loading video from URL:', videoUrl, 'fromRoomState:', fromRoomState)
+        setIsLoading(true)
+        const relPath = decodeURIComponent(videoUrl.replace(/^\/media\//, ''))
+        
+        // Try to fetch video info from server to get complete metadata
+        try {
+          const response = await fetch(`${import.meta.env.VITE_MEDIA_BASE_URL || 'http://localhost:8080'}/api/videos`)
+          const videos = await response.json()
+          const videoInfo = videos.find((v: VideoInfo) => v.relPath === relPath)
+          
+          if (videoInfo) {
+            console.log('Found video info from server:', videoInfo)
+            setVideo(videoInfo)
+            if (video) {
+              video.src = getVideoStreamUrl(videoInfo.relPath)
+              video.load()
+            }
+            setIsLoading(false)
+            
+            // Only send sync message if not loading from room state
+            if (!fromRoomState) {
+              sendSyncMessage('loadVideo', 0)
+            }
+            return
+          }
+        } catch (error) {
+          console.warn('Could not fetch video metadata from server, using fallback:', error)
+        }
+        
+        // Fallback: create video info from URL
+        const name = relPath.split('/').pop()?.replace(/\.[^/.]+$/, '') || relPath
+        const newVideo: VideoInfo = {
+          id: btoa(relPath),
+          name,
+          relPath,
+          url: videoUrl
+        }
+        console.log('Using fallback video info:', newVideo)
+        setVideo(newVideo)
+        if (video) {
+          video.src = getVideoStreamUrl(relPath)
+          video.load()
+        }
+        setIsLoading(false)
+        
+        // Only send sync message if not loading from room state
+        if (!fromRoomState) {
+          sendSyncMessage('loadVideo', 0)
+        }
+      } catch (error) {
+        console.error('Failed to load video from URL:', error)
+        setIsLoading(false)
       }
-      setVideo(newVideo)
-      video.src = getVideoStreamUrl(relPath)
-      video.load()
     }
 
     setIsApplyingRemote(true)
@@ -118,10 +164,12 @@ function VideoPlayer() {
     try {
       if (message.type === 'loadVideo') {
         if (message.videoUrl && (!selectedVideo || selectedVideo.url !== message.videoUrl)) {
-          loadVideoFromUrl(message.videoUrl)
+          const isFromServer = message.clientId === 'server'
+          await loadVideoFromUrl(message.videoUrl, isFromServer)
         }
       } else if (!selectedVideo && message.videoUrl) {
-        loadVideoFromUrl(message.videoUrl)
+        const isFromServer = message.clientId === 'server'
+        await loadVideoFromUrl(message.videoUrl, isFromServer)
       }
 
       const targetTime = calculateDriftAdjustedTime(message)
@@ -395,7 +443,9 @@ function VideoPlayer() {
             Select Video
           </Link>
         </div>
-        <div className="loading">No video selected. Choose a video to start watching together.</div>
+        <div className="loading">
+          {isLoading ? 'Loading video from room...' : 'No video selected. Choose a video to start watching together.'}
+        </div>
       </div>
     )
   }

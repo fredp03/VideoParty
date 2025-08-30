@@ -224,7 +224,7 @@ const wss = new WebSocketServer({
 
 // Room management
 const rooms = new Map() // roomId -> Set of client websockets
-const roomStates = new Map() // roomId -> { videoUrl, currentTime, paused }
+const roomStates = new Map() // roomId -> { videoUrl, videoRelPath, currentTime, paused }
 
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
@@ -260,16 +260,33 @@ wss.on('connection', (ws, req) => {
   // Send current room state to new client
   const existingState = roomStates.get(roomId)
   if (existingState && existingState.videoUrl) {
+    console.log(`Sending room state to new client ${clientId}:`, existingState)
+    
+    // Calculate current time if video is playing
+    let currentTime = existingState.currentTime
+    if (!existingState.paused && existingState.lastUpdateMs) {
+      const timeSinceUpdate = (Date.now() - existingState.lastUpdateMs) / 1000
+      currentTime = existingState.currentTime + timeSinceUpdate
+    }
+    
     const baseMessage = {
       roomId,
       clientId: 'server',
-      currentTime: existingState.currentTime,
+      currentTime: currentTime,
       paused: existingState.paused,
       sentAtMs: Date.now(),
       videoUrl: existingState.videoUrl
     }
-    ws.send(JSON.stringify({ ...baseMessage, type: 'loadVideo' }))
-    ws.send(JSON.stringify({ ...baseMessage, type: 'timeSync' }))
+    
+    // Send loadVideo message first
+    const loadVideoMessage = { ...baseMessage, type: 'loadVideo' }
+    ws.send(JSON.stringify(loadVideoMessage))
+    
+    // Then send timeSync to ensure proper position
+    setTimeout(() => {
+      const timeSyncMessage = { ...baseMessage, type: 'timeSync', sentAtMs: Date.now() }
+      ws.send(JSON.stringify(timeSyncMessage))
+    }, 100)
   }
 
   ws.on('message', (data) => {
@@ -284,12 +301,26 @@ wss.on('connection', (ws, req) => {
       // Update room state for sync messages
       if (['loadVideo', 'play', 'pause', 'seek', 'timeSync'].includes(message.type)) {
         const currentState = roomStates.get(message.roomId) || { currentTime: 0, paused: true }
+        
+        // Update video URL if provided
         if (message.videoUrl) {
           currentState.videoUrl = message.videoUrl
+          // Extract relative path from URL for easier lookup
+          if (message.videoUrl.startsWith('/media/')) {
+            currentState.videoRelPath = decodeURIComponent(message.videoUrl.replace('/media/', ''))
+          }
+          console.log(`Room ${message.roomId} video changed to:`, message.videoUrl)
         }
+        
         currentState.currentTime = message.currentTime
         currentState.paused = message.paused
+        currentState.lastUpdateMs = Date.now()
         roomStates.set(message.roomId, currentState)
+        
+        // Log room state updates for debugging
+        if (message.type === 'loadVideo') {
+          console.log(`Room ${message.roomId} state updated:`, currentState)
+        }
       }
 
       // Broadcast to all other clients in the same room

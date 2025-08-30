@@ -41,22 +41,42 @@ npm run build
 
 ### 3. Expose Your Server
 
-**Option A: Cloudflare Tunnel (Recommended)**
-```bash
-# Install cloudflared
-brew install cloudflared  # macOS
+**Port Forwarding + Dynamic DNS + Caddy (Production-Ready)**
 
-# Start tunnel
-cloudflared tunnel --url http://localhost:8080
-# Copy the generated https URL
-```
+1. **Set up Domain/DDNS**:
+   - Get a domain or use DDNS service (DuckDNS, No-IP)
+   - Point it to your public IP address
 
-**Option B: Port Forwarding**
-- Forward port 8080 in your router settings
-- Use your public IP: `http://YOUR_PUBLIC_IP:8080`
+2. **Configure Router**:
+   - Port forward TCP 80 and 443 to your server machine
+   - Enable NAT loopback/hairpin if testing from same network
+
+3. **Install Caddy**:
+   ```bash
+   # macOS
+   brew install caddy
+   
+   # Linux
+   sudo apt install caddy
+   ```
+
+4. **Start Services**:
+   ```bash
+   # Start Node server
+   npm --prefix server run start
+   
+   # Start Caddy (in project root)
+   caddy run --config ./Caddyfile
+   ```
+
+5. **Verify Setup**:
+   ```bash
+   curl -I https://watch.example.com/api/health
+   curl -H "Origin: https://myapp.netlify.app" -I https://watch.example.com/media/episode.mp4
+   ```
 
 ### 4. Configure Frontend
-Set `VITE_MEDIA_BASE_URL` in Netlify environment variables to your tunnel/public URL.
+Set `VITE_MEDIA_BASE_URL` in Netlify environment variables to your domain URL.
 
 ### 5. Update CORS
 Set `ORIGIN` in server `.env` to your Netlify URL.
@@ -101,7 +121,7 @@ SHARED_TOKEN=secret123            # Optional auth token
 
 ### Frontend Environment Variables
 ```env
-VITE_MEDIA_BASE_URL=https://your-tunnel.trycloudflare.com
+VITE_MEDIA_BASE_URL=https://watch.example.com
 ```
 
 ## 🎬 Supported Formats

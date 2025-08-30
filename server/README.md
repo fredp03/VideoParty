@@ -66,61 +66,47 @@ Place `.vtt` caption files next to video files with the same name:
 
 ## Exposing Your Server
 
-### Option 1: Cloudflare Tunnel (Recommended)
+### Production Deployment with Caddy
 
-1. **Install Cloudflare Tunnel**:
+For production deployment with HTTPS and proper security:
+
+1. **Set up Domain/DDNS**:
+   - Configure your domain to point to your public IP
+   - Or use a Dynamic DNS service like DuckDNS
+
+2. **Port Forwarding**:
+   - Forward TCP ports 80 and 443 to your server machine
+   - Configure NAT loopback for local testing
+
+3. **Install Caddy**:
    ```bash
    # macOS
-   brew install cloudflared
+   brew install caddy
    
    # Linux
-   wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-   sudo dpkg -i cloudflared-linux-amd64.deb
+   sudo apt install caddy
    ```
 
-2. **Start the tunnel**:
+4. **Configure Caddyfile**:
+   - Edit the `Caddyfile` in project root
+   - Replace `watch.example.com` with your domain
+   - Replace Netlify URL with your actual frontend URL
+
+5. **Start Services**:
    ```bash
-   cloudflared tunnel --url http://localhost:8080
-   ```
+   # Start Node server
+   npm start
    
-3. **Copy the generated URL** (e.g., `https://abc123.trycloudflare.com`)
-
-4. **Update your frontend** environment variable:
-   ```
-   VITE_MEDIA_BASE_URL=https://abc123.trycloudflare.com
+   # Start Caddy (from project root)
+   caddy run --config ./Caddyfile
    ```
 
-5. **Update server CORS** in `.env`:
-   ```
-   ORIGIN=https://your-netlify-site.netlify.app
-   ```
-
-### Option 2: Port Forwarding
-
-1. **Find your local IP**:
+6. **Verify Setup**:
    ```bash
-   # macOS/Linux
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-   
-   # Or check your router's admin panel
+   curl -I https://yourdomain.com/api/health
    ```
 
-2. **Forward port 8080** in your router settings:
-   - Log into your router (usually 192.168.1.1 or 192.168.0.1)
-   - Go to Port Forwarding / Virtual Servers
-   - Forward external port 8080 to your computer's IP:8080
-
-3. **Find your public IP**:
-   ```bash
-   curl ifconfig.me
-   ```
-
-4. **Update frontend environment**:
-   ```
-   VITE_MEDIA_BASE_URL=http://YOUR_PUBLIC_IP:8080
-   ```
-
-⚠️ **Note**: Port forwarding exposes your server to the internet. Consider using `SHARED_TOKEN` for security.
+See `docs/NETWORKING.md` for detailed networking setup instructions.
 
 ## API Endpoints
 

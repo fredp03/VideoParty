@@ -17,11 +17,27 @@ const MEDIA_DIR = process.env.MEDIA_DIR || './media'
 const ORIGIN = process.env.ORIGIN || 'http://localhost:5173'
 const SHARED_TOKEN = process.env.SHARED_TOKEN
 
-// CORS middleware
-app.use(cors({
-  origin: ORIGIN,
-  credentials: true
-}))
+// CORS middleware with preflight handling
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  
+  // Only allow configured origin
+  if (origin === ORIGIN) {
+    res.header('Access-Control-Allow-Origin', ORIGIN)
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Authorization, Range, Content-Type')
+  res.header('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range')
+  res.header('Access-Control-Allow-Credentials', 'true')
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end()
+  }
+  
+  next()
+})
 
 app.use(express.json())
 

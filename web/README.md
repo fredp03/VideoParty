@@ -13,7 +13,7 @@ npm run dev
 
 Set these in Netlify (or `.env.local` for development):
 
-- `VITE_MEDIA_BASE_URL`: Your backend server URL (e.g., `https://abc123.trycloudflare.com`)
+- `VITE_MEDIA_BASE_URL`: Your backend server URL (e.g., `https://watch.example.com`)
 
 ## Netlify Deployment
 
@@ -26,7 +26,7 @@ Set these in Netlify (or `.env.local` for development):
    - Connect your GitHub repo to Netlify
    - Set build command: `npm run build`
    - Set publish directory: `dist`
-   - Set environment variable: `VITE_MEDIA_BASE_URL=https://your-tunnel-url.trycloudflare.com`
+   - Set environment variable: `VITE_MEDIA_BASE_URL=https://watch.example.com`
 
 3. **Configure your backend**:
    - Set `ORIGIN` in your server's `.env` to your Netlify URL

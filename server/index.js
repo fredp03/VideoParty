@@ -182,6 +182,7 @@ const wss = new WebSocketServer({
 
 // Room management
 const rooms = new Map() // roomId -> Set of client websockets
+const roomStates = new Map() // roomId -> { videoUrl, currentTime, paused }
 
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
@@ -214,6 +215,21 @@ wss.on('connection', (ws, req) => {
 
   console.log(`Client ${clientId} joined room ${roomId}. Room size: ${room.size}`)
 
+  // Send current room state to new client
+  const existingState = roomStates.get(roomId)
+  if (existingState && existingState.videoUrl) {
+    const baseMessage = {
+      roomId,
+      clientId: 'server',
+      currentTime: existingState.currentTime,
+      paused: existingState.paused,
+      sentAtMs: Date.now(),
+      videoUrl: existingState.videoUrl
+    }
+    ws.send(JSON.stringify({ ...baseMessage, type: 'loadVideo' }))
+    ws.send(JSON.stringify({ ...baseMessage, type: 'timeSync' }))
+  }
+
   ws.on('message', (data) => {
     try {
       const message = JSON.parse(data.toString())
@@ -223,12 +239,24 @@ wss.on('connection', (ws, req) => {
         return
       }
 
+      // Update room state for sync messages
+      if (['loadVideo', 'play', 'pause', 'seek', 'timeSync'].includes(message.type)) {
+        const currentState = roomStates.get(message.roomId) || { currentTime: 0, paused: true }
+        if (message.videoUrl) {
+          currentState.videoUrl = message.videoUrl
+        }
+        currentState.currentTime = message.currentTime
+        currentState.paused = message.paused
+        roomStates.set(message.roomId, currentState)
+      }
+
       // Broadcast to all other clients in the same room
       const room = rooms.get(message.roomId)
       if (room) {
+        const payload = JSON.stringify(message)
         room.forEach(client => {
           if (client !== ws && client.readyState === client.OPEN) {
-            client.send(data)
+            client.send(payload)
           }
         })
       }
@@ -242,10 +270,11 @@ wss.on('connection', (ws, req) => {
     if (room) {
       room.delete(ws)
       console.log(`Client ${clientId} left room ${roomId}. Room size: ${room.size}`)
-      
+
       // Clean up empty rooms
       if (room.size === 0) {
         rooms.delete(roomId)
+        roomStates.delete(roomId)
         console.log(`Room ${roomId} deleted (empty)`)
       }
     }

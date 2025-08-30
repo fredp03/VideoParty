@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAppStore } from '../App'
-import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from '../sync'
+import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage, SYNC_INTERVAL } from '../sync'
 import { getVideoStreamUrl } from '../api'
 import { WSMessage, VideoInfo } from '../types'
 
@@ -82,6 +82,19 @@ function VideoPlayer() {
           
           handleRemoteMessage(message)
         })
+
+        // Request initial sync when joining room (especially important for iOS)
+        setTimeout(() => {
+          if (isIOS()) {
+            console.log('Requesting initial sync for iOS')
+            // Send a sync request to get current state
+            const video = videoRef.current
+            if (video && selectedVideo) {
+              sendSyncMessage('timeSync')
+            }
+          }
+        }, 500)
+        
       } catch (error) {
         console.error('Failed to connect to WebSocket:', error)
       }
@@ -125,6 +138,17 @@ function VideoPlayer() {
       }
 
       const targetTime = calculateDriftAdjustedTime(message)
+      
+      // Add debug logging for iOS sync issues
+      if (isIOS()) {
+        console.log('iOS sync:', {
+          type: message.type,
+          currentTime: video.currentTime,
+          targetTime,
+          diff: Math.abs(video.currentTime - targetTime),
+          willSeek: shouldSeekToTime(video.currentTime, targetTime)
+        })
+      }
 
       switch (message.type) {
         case 'loadVideo':
@@ -143,11 +167,22 @@ function VideoPlayer() {
           break
 
         case 'play':
-          if (shouldSeekToTime(video.currentTime, targetTime)) {
+          // For iOS, apply slight timing adjustment before play
+          if (isIOS() && shouldSeekToTime(video.currentTime, targetTime)) {
             video.currentTime = targetTime
-          }
-          if (video.paused) {
-            video.play().catch(console.error)
+            // Small delay to let seek settle on iOS
+            setTimeout(() => {
+              if (video.paused) {
+                video.play().catch(console.error)
+              }
+            }, 10)
+          } else {
+            if (shouldSeekToTime(video.currentTime, targetTime)) {
+              video.currentTime = targetTime
+            }
+            if (video.paused) {
+              video.play().catch(console.error)
+            }
           }
           break
 
@@ -171,7 +206,9 @@ function VideoPlayer() {
           break
       }
     } finally {
-      setTimeout(() => setIsApplyingRemote(false), 100)
+      // Shorter delay for iOS to reduce lag
+      const delay = isIOS() ? 50 : 100
+      setTimeout(() => setIsApplyingRemote(false), delay)
     }
   }
 
@@ -211,9 +248,9 @@ function VideoPlayer() {
 
     setCurrentTime(video.currentTime)
 
-    // Send periodic sync if playing (every 5 seconds)
+    // Send periodic sync - more frequent on mobile for better sync
     const now = Date.now()
-    if (!video.paused && now - lastSyncTime > 5000) {
+    if (!video.paused && now - lastSyncTime > SYNC_INTERVAL) {
       setLastSyncTime(now)
       sendSyncMessage('timeSync')
     }
@@ -236,6 +273,11 @@ function VideoPlayer() {
     // Ensure audio is not muted after metadata loads
     video.muted = false
     video.volume = personalSettings.volume
+    
+    // For iOS, ensure the video is ready for precise seeking
+    if (isIOS() && video.readyState >= 2) {
+      console.log('iOS video ready for seeking')
+    }
   }
 
   const handleSeek = (newTime: number) => {
@@ -442,8 +484,17 @@ function VideoPlayer() {
                 console.log('Video can play - Audio setup:', {
                   muted: video.muted,
                   volume: video.volume,
+                  readyState: video.readyState,
                   hasAudio: video.duration > 0 ? 'Unknown' : 'Checking...'
                 })
+                
+                // For iOS, trigger a sync check once video is ready to play
+                if (isIOS() && roomId) {
+                  setTimeout(() => {
+                    console.log('iOS video ready - checking sync')
+                    sendSyncMessage('timeSync')
+                  }, 100)
+                }
               }
             }}
           >

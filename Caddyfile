@@ -2,7 +2,7 @@
   # Production configuration with HTTPS
 }
 
-fredav-videoparty.freedns.org {
+fredav-videoparty.freeddns.org {
   encode zstd gzip
 
   # Note: CORS headers are handled by the VideoParty server

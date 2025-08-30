@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses Dynu.com for dynamic DNS management of `fredav-videoparty.freedns.org`. The included updater script automatically updates the A record when your public IP changes.
+This project uses Dynu.com for dynamic DNS management of `fredav-videoparty.freeddns.org`. The included updater script automatically updates the A record when your public IP changes.
 
 ## Initial Setup
 
@@ -10,7 +10,7 @@ This project uses Dynu.com for dynamic DNS management of `fredav-videoparty.free
 
 1. **Create Dynu Account**: Sign up at https://www.dynu.com
 2. **Add Domain**: 
-   - If using a subdomain, create `fredav-videoparty.freedns.org`
+   - If using a subdomain, create `fredav-videoparty.freeddns.org`
    - Or use your own domain if you have one
 3. **Configure DNS Record**:
    - Type: A
@@ -30,10 +30,10 @@ cp .env.ddns.example .env.ddns
 
 Example `.env.ddns`:
 ```bash
-DYNU_UPDATE_URL="https://api.dynu.com/nic/update?hostname=fredav-videoparty.freedns.org&myip={IP}"
+DYNU_UPDATE_URL="https://api.dynu.com/nic/update?hostname=fredav-videoparty.freeddns.org&myip={IP}"
 DYNU_USERNAME="your_dynu_username"
 DYNU_PASSWORD="your_dynu_password"
-DYNU_HOST="fredav-videoparty.freedns.org"
+DYNU_HOST="fredav-videoparty.freeddns.org"
 ```
 
 ### 3. Test the Updater
@@ -134,7 +134,7 @@ sudo systemctl start dynu-ddns.timer
 ### DNS Resolution
 ```bash
 # Check A record
-dig +short A fredav-videoparty.freedns.org
+dig +short A fredav-videoparty.freeddns.org
 
 # Should match your public IP
 curl -4 ifconfig.co
@@ -143,13 +143,13 @@ curl -4 ifconfig.co
 ### Service Health
 ```bash
 # Test HTTP redirect
-curl -I http://fredav-videoparty.freedns.org
+curl -I http://fredav-videoparty.freeddns.org
 
 # Test HTTPS API
-curl -I https://fredav-videoparty.freedns.org/api/health
+curl -I https://fredav-videoparty.freeddns.org/api/health
 
 # Test media streaming with Range requests
-curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freedns.org/media/test-video.mp4"
+curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freeddns.org/media/test-video.mp4"
 ```
 
 ## Troubleshooting
@@ -198,7 +198,7 @@ curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freedns.org/media/test-
 curl -4 ifconfig.co
 
 # Test Dynu update manually
-curl -fsS -u "username:password" "https://api.dynu.com/nic/update?hostname=fredav-videoparty.freedns.org&myip=YOUR_IP"
+curl -fsS -u "username:password" "https://api.dynu.com/nic/update?hostname=fredav-videoparty.freeddns.org&myip=YOUR_IP"
 
 # Check Caddy logs
 sudo journalctl -u caddy -f

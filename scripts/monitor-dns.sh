@@ -3,7 +3,7 @@
 # DNS Propagation Monitor
 # Checks multiple DNS servers until the domain resolves
 
-DOMAIN="fredav-videoparty.freedns.org"
+DOMAIN="fredav-videoparty.freeddns.org"
 EXPECTED_IP="73.142.127.37"
 
 DNS_SERVERS=(
@@ -69,7 +69,7 @@ while true; do
         echo ""
         echo "🎉 DNS propagation complete!"
         echo "✅ You can now test the live domain:"
-        echo "   https://fredav-videoparty.freedns.org"
+        echo "   https://fredav-videoparty.freeddns.org"
         break
     fi
     echo ""

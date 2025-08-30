@@ -36,7 +36,7 @@ npm start
 cd web
 npm install
 npm run build
-# Deploy to Netlify with VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org
+# Deploy to Netlify with VITE_MEDIA_BASE_URL=https://fredav-videoparty.freeddns.org
 ```
 
 ### 3. Dynu + Caddy Setup
@@ -45,7 +45,7 @@ npm run build
 
 1. **Configure Dynu**:
    - Sign up at https://www.dynu.com
-   - Create A record: `fredav-videoparty.freedns.org` → your public IP
+   - Create A record: `fredav-videoparty.freeddns.org` → your public IP
    - Enable dynamic DNS and note your credentials
    - See [docs/DYNU_DDNS.md](docs/DYNU_DDNS.md) for detailed setup
 
@@ -119,16 +119,16 @@ SHARED_TOKEN=supersecrettoken            # Optional auth token
 
 ### Frontend Environment Variables
 ```env
-VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org
+VITE_MEDIA_BASE_URL=https://fredav-videoparty.freeddns.org
 ```
 
 ### Dynu Configuration
 ```env
 # .env.ddns
-DYNU_UPDATE_URL="https://api.dynu.com/nic/update?hostname=fredav-videoparty.freedns.org&myip={IP}"
+DYNU_UPDATE_URL="https://api.dynu.com/nic/update?hostname=fredav-videoparty.freeddns.org&myip={IP}"
 DYNU_USERNAME="your_dynu_username"
 DYNU_PASSWORD="your_dynu_password"
-DYNU_HOST="fredav-videoparty.freedns.org"
+DYNU_HOST="fredav-videoparty.freeddns.org"
 ```
 
 ## 🎬 Supported Formats
@@ -155,7 +155,7 @@ DYNU_HOST="fredav-videoparty.freedns.org"
 1. Connect your GitHub repo to Netlify
 2. Set build command: `npm run build`
 3. Set publish directory: `dist`
-4. Add environment variable: `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org`
+4. Add environment variable: `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freeddns.org`
 
 ### Server (Your Machine)
 1. Use Dynu + Caddy for secure HTTPS access
@@ -167,7 +167,7 @@ DYNU_HOST="fredav-videoparty.freedns.org"
 **Videos not showing:**
 - Check `MEDIA_DIR` path in server `.env`
 - Verify file permissions
-- Test: `curl -I https://fredav-videoparty.freedns.org/media/test-video.mp4`
+- Test: `curl -I https://fredav-videoparty.freeddns.org/media/test-video.mp4`
 
 **CORS errors:**
 - Ensure `ORIGIN` matches Netlify URL exactly
@@ -176,12 +176,12 @@ DYNU_HOST="fredav-videoparty.freedns.org"
 
 **Sync issues:**
 - Check network connection
-- Verify WebSocket connection: `wss://fredav-videoparty.freedns.org/ws`
+- Verify WebSocket connection: `wss://fredav-videoparty.freeddns.org/ws`
 - Test with two browser tabs
 
 **Connection fails:**
-- Test server health: `curl https://fredav-videoparty.freedns.org/api/health`
-- Check FreeDNS DNS resolution: `dig +short A fredav-videoparty.freedns.org`
+- Test server health: `curl https://fredav-videoparty.freeddns.org/api/health`
+- Check FreeDNS DNS resolution: `dig +short A fredav-videoparty.freeddns.org`
 - Verify router port forwarding and firewall settings
 
 ## 📝 API Documentation
@@ -195,11 +195,11 @@ Before going live, verify these steps:
 ### 1. DNS & Network
 ```bash
 # A record resolves to current WAN IPv4
-dig +short A fredav-videoparty.freedns.org
+dig +short A fredav-videoparty.freeddns.org
 curl -4 ifconfig.co  # Should match
 
 # IPv6 disabled unless used
-dig +short AAAA fredav-videoparty.freedns.org  # Should be empty
+dig +short AAAA fredav-videoparty.freeddns.org  # Should be empty
 ```
 
 ### 2. Router Configuration
@@ -210,16 +210,16 @@ dig +short AAAA fredav-videoparty.freedns.org  # Should be empty
 ### 3. Services Running
 ```bash
 # Caddy running with valid certificate
-curl -I https://fredav-videoparty.freedns.org/api/health
+curl -I https://fredav-videoparty.freeddns.org/api/health
 # Expected: 200 OK with CORS headers
 
 # HTTP redirects to HTTPS
-curl -I http://fredav-videoparty.freedns.org
+curl -I http://fredav-videoparty.freeddns.org
 # Expected: 301/308 redirect to https://
 ```
 
 ### 4. Frontend Configuration
-- [ ] Netlify env `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org`
+- [ ] Netlify env `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freeddns.org`
 - [ ] Build and deploy successful
 
 ### 5. Backend Configuration
@@ -230,10 +230,10 @@ curl -I http://fredav-videoparty.freedns.org
 ### 6. Acceptance Tests
 ```bash
 # Range request returns 206 Partial Content
-curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freedns.org/media/test-video.mp4"
+curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freeddns.org/media/test-video.mp4"
 
 # WebSocket connection works
-# Test in browser: new WebSocket('wss://fredav-videoparty.freedns.org/ws?roomId=test')
+# Test in browser: new WebSocket('wss://fredav-videoparty.freeddns.org/ws?roomId=test')
 
 # Two-tab sync test passes
 # 1. Open https://fredav.netlify.app in two tabs

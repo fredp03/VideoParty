@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useAppStore } from '../App'
 import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from '../sync'
 import { getVideoStreamUrl } from '../api'
-import { WSMessage } from '../types'
+import { WSMessage, VideoInfo } from '../types'
 
 function VideoPlayer() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -20,7 +20,8 @@ function VideoPlayer() {
     clientId,
     wsClient,
     personalSettings,
-    updatePersonalSettings
+    updatePersonalSettings,
+    setVideo
   } = useAppStore()
 
   // Update video volume when personal settings change
@@ -67,16 +68,46 @@ function VideoPlayer() {
     const video = videoRef.current
     if (!video || isApplyingRemote) return
 
+    const loadVideoFromUrl = (videoUrl: string) => {
+      const relPath = decodeURIComponent(videoUrl.replace(/^\/media\//, ''))
+      const name = relPath.split('/').pop()?.replace(/\.[^/.]+$/, '') || relPath
+      const newVideo: VideoInfo = {
+        id: btoa(relPath),
+        name,
+        relPath,
+        url: videoUrl
+      }
+      setVideo(newVideo)
+      video.src = getVideoStreamUrl(relPath)
+      video.load()
+    }
+
     setIsApplyingRemote(true)
 
     try {
+      if (message.type === 'loadVideo') {
+        if (message.videoUrl && (!selectedVideo || selectedVideo.url !== message.videoUrl)) {
+          loadVideoFromUrl(message.videoUrl)
+        }
+      } else if (!selectedVideo && message.videoUrl) {
+        loadVideoFromUrl(message.videoUrl)
+      }
+
       const targetTime = calculateDriftAdjustedTime(message)
 
       switch (message.type) {
         case 'loadVideo':
-          if (message.videoUrl && selectedVideo?.url !== message.videoUrl) {
-            // Load new video - this would need to be handled by app state
-            console.log('Remote video load:', message.videoUrl)
+          if (shouldSeekToTime(video.currentTime, targetTime)) {
+            video.currentTime = targetTime
+          }
+          if (message.paused) {
+            if (!video.paused) {
+              video.pause()
+            }
+          } else {
+            if (video.paused) {
+              video.play().catch(console.error)
+            }
           }
           break
 

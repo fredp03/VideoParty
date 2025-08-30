@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAppStore } from '../App'
 import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from '../sync'
-import { getVideoStreamUrl, getCaptionsUrl } from '../api'
+import { getVideoStreamUrl } from '../api'
 import { WSMessage } from '../types'
 
 function VideoPlayer() {

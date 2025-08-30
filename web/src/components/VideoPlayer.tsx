@@ -29,6 +29,13 @@ function VideoPlayer() {
     }
   }, [personalSettings.volume])
 
+  // Debug: Log the video URL
+  if (selectedVideo) {
+    const videoUrl = getVideoStreamUrl(selectedVideo.relPath)
+    console.log('Video URL:', videoUrl)
+    console.log('Selected video:', selectedVideo)
+  }
+
   // Connect to WebSocket
   useEffect(() => {
     if (!roomId) return
@@ -169,7 +176,12 @@ function VideoPlayer() {
     if (!video) return
 
     if (video.paused) {
-      video.play().catch(console.error)
+      video.play().catch((error) => {
+        console.error('Video play failed:', error)
+        console.error('Video readyState:', video.readyState)
+        console.error('Video networkState:', video.networkState)
+        console.error('Video error:', video.error)
+      })
     } else {
       video.pause()
     }
@@ -258,7 +270,15 @@ function VideoPlayer() {
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
-            onError={(e) => console.error('Video error:', e)}
+            onError={(e) => {
+              const video = e.target as HTMLVideoElement
+              console.error('Video loading error:', e)
+              console.error('Video src:', video.src)
+              console.error('Video readyState:', video.readyState)
+              console.error('Video networkState:', video.networkState)
+              console.error('Video error code:', video.error?.code)
+              console.error('Video error message:', video.error?.message)
+            }}
           >
           </video>
 

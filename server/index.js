@@ -95,6 +95,18 @@ app.get('/api/videos', authMiddleware, async (req, res) => {
   }
 })
 
+// Handle preflight requests for media endpoint
+app.options('/media/*', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': ORIGIN,
+    'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400'
+  });
+  res.status(200).end();
+});
+
 // Media streaming with Range support
 app.get('/media/*', authMiddleware, (req, res) => {
   try {
@@ -121,7 +133,10 @@ app.get('/media/*', authMiddleware, (req, res) => {
       'Content-Type': mimeType,
       'Accept-Ranges': 'bytes',
       'Access-Control-Allow-Origin': ORIGIN,
-      'Access-Control-Allow-Headers': 'Range'
+      'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Expose-Headers': 'Accept-Ranges, Content-Length, Content-Range',
+      'Access-Control-Allow-Credentials': 'true'
     })
 
     // Handle Range requests for video streaming

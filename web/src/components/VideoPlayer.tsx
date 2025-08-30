@@ -5,6 +5,12 @@ import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from 
 import { getVideoStreamUrl } from '../api'
 import { WSMessage, VideoInfo } from '../types'
 
+// Utility function to detect iOS devices
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
 function VideoPlayer() {
   const { roomId } = useParams<{ roomId: string }>()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -30,6 +36,31 @@ function VideoPlayer() {
       videoRef.current.volume = personalSettings.volume
     }
   }, [personalSettings.volume])
+
+  // Add iOS fullscreen event listeners
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !isIOS()) return
+
+    const handleWebkitFullscreenChange = () => {
+      const isFullscreen = 'webkitDisplayingFullscreen' in video && (video as any).webkitDisplayingFullscreen
+      console.log('iOS fullscreen state changed:', isFullscreen)
+    }
+
+    // Listen for iOS fullscreen events
+    video.addEventListener('webkitbeginfullscreen', () => {
+      console.log('iOS fullscreen began')
+    })
+    
+    video.addEventListener('webkitendfullscreen', () => {
+      console.log('iOS fullscreen ended')
+    })
+
+    return () => {
+      video.removeEventListener('webkitbeginfullscreen', handleWebkitFullscreenChange)
+      video.removeEventListener('webkitendfullscreen', handleWebkitFullscreenChange)
+    }
+  }, [selectedVideo])
 
   // Debug: Log the video URL
   if (selectedVideo) {
@@ -252,13 +283,56 @@ function VideoPlayer() {
   }
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.parentElement
-    if (!container) return
+    const video = videoRef.current
+    const container = video?.parentElement
+    
+    if (!video || !container) return
 
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(console.error)
+    console.log('Fullscreen toggle requested', { 
+      isIOS: isIOS(), 
+      hasWebkitFullscreen: 'webkitEnterFullscreen' in video,
+      currentFullscreenElement: document.fullscreenElement 
+    })
+
+    // Handle iOS devices differently
+    if (isIOS()) {
+      // On iOS, use the video element's native fullscreen
+      try {
+        if ('webkitEnterFullscreen' in video) {
+          // Check if already in fullscreen mode
+          if ('webkitDisplayingFullscreen' in video && (video as any).webkitDisplayingFullscreen) {
+            // Exit fullscreen if supported
+            if ('webkitExitFullscreen' in video) {
+              console.log('Exiting iOS fullscreen')
+              ;(video as any).webkitExitFullscreen()
+            }
+          } else {
+            // Enter fullscreen
+            console.log('Entering iOS fullscreen')
+            ;(video as any).webkitEnterFullscreen()
+          }
+        } else {
+          // Fallback: try standard fullscreen API
+          console.log('iOS fallback to standard fullscreen')
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(console.error)
+          } else {
+            container.requestFullscreen().catch(console.error)
+          }
+        }
+      } catch (error) {
+        console.error('iOS fullscreen error:', error)
+        // Final fallback for iOS
+        console.log('Using fallback fullscreen method for iOS')
+      }
     } else {
-      container.requestFullscreen().catch(console.error)
+      // Desktop/Android: use standard fullscreen API
+      console.log('Using standard fullscreen API')
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(console.error)
+      } else {
+        container.requestFullscreen().catch(console.error)
+      }
     }
   }
 
@@ -344,6 +418,8 @@ function VideoPlayer() {
             playsInline
             controls={false}
             muted={false}
+            webkit-playsinline="true"
+            x-webkit-airplay="allow"
             onPlay={handlePlay}
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}

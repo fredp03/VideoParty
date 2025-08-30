@@ -250,18 +250,16 @@ function VideoPlayer() {
           <video
             ref={videoRef}
             src={getVideoStreamUrl(selectedVideo.relPath)}
+            crossOrigin="anonymous"
+            preload="metadata"
+            playsInline
+            controls={false}
             onPlay={handlePlay}
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
+            onError={(e) => console.error('Video error:', e)}
           >
-            {selectedVideo.captionsUrl && (
-              <track
-                kind="captions"
-                src={selectedVideo.captionsUrl}
-                default={personalSettings.captionsEnabled}
-              />
-            )}
           </video>
 
           <div className="video-controls">

@@ -5,27 +5,14 @@
 fredav-videoparty.duckdns.org {
   encode zstd gzip
 
-  @cors {
-    header Origin https://fredav.netlify.app
-    method OPTIONS
-  }
-
   header {
-    # CORS for Netlify origin only
-    Access-Control-Allow-Origin "https://fredav.netlify.app"
-    Access-Control-Allow-Methods "GET,OPTIONS"
-    Access-Control-Allow-Headers "Authorization, Range, Content-Type"
-    Access-Control-Expose-Headers "Accept-Ranges, Content-Length, Content-Range"
-    # Basic security
+    # Basic security headers only (no CORS - handled by Node.js)
     X-Content-Type-Options "nosniff"
     Referrer-Policy "no-referrer"
     Permissions-Policy "autoplay=(), fullscreen=(), microphone=()"
     # HSTS for production
     Strict-Transport-Security "max-age=31536000; includeSubDomains"
   }
-
-  # Preflight handler
-  respond @cors 204
 
   # Reverse proxy to local Node server
   reverse_proxy localhost:8080

@@ -13,6 +13,7 @@ function VideoPlayer() {
   const [duration, setDuration] = useState(0)
   const [isApplyingRemote, setIsApplyingRemote] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState(0)
+  const [audioBlocked, setAudioBlocked] = useState(false)
   
   const {
     selectedVideo,
@@ -160,6 +161,19 @@ function VideoPlayer() {
     const video = videoRef.current
     if (!video) return
     setDuration(video.duration)
+    
+    // Debug audio capabilities
+    console.log('Video metadata loaded:', {
+      duration: video.duration,
+      muted: video.muted,
+      volume: video.volume,
+      readyState: video.readyState,
+      networkState: video.networkState
+    })
+    
+    // Ensure audio is not muted after metadata loads
+    video.muted = false
+    video.volume = personalSettings.volume
   }
 
   const handleSeek = (newTime: number) => {
@@ -176,11 +190,30 @@ function VideoPlayer() {
     if (!video) return
 
     if (video.paused) {
+      // Ensure audio is enabled before playing
+      video.muted = false
+      video.volume = personalSettings.volume
+      
       video.play().catch((error) => {
         console.error('Video play failed:', error)
         console.error('Video readyState:', video.readyState)
         console.error('Video networkState:', video.networkState)
         console.error('Video error:', video.error)
+        console.error('Audio setup:', {
+          muted: video.muted,
+          volume: video.volume
+        })
+        
+        // If autoplay is blocked, try playing muted first then unmuting
+        if (error.name === 'NotAllowedError') {
+          console.log('Autoplay blocked, trying muted playback...')
+          setAudioBlocked(true)
+          video.muted = true
+          video.play().then(() => {
+            // Show user a message to click to enable audio
+            console.log('Playing muted. User needs to interact to enable audio.')
+          }).catch(console.error)
+        }
       })
     } else {
       video.pause()
@@ -210,6 +243,20 @@ function VideoPlayer() {
     updatePersonalSettings({ volume })
     if (videoRef.current) {
       videoRef.current.volume = volume
+      // If user adjusts volume and audio was blocked, try to unmute
+      if (audioBlocked && volume > 0) {
+        videoRef.current.muted = false
+        setAudioBlocked(false)
+      }
+    }
+  }
+
+  const enableAudio = () => {
+    const video = videoRef.current
+    if (video && audioBlocked) {
+      video.muted = false
+      setAudioBlocked(false)
+      console.log('Audio enabled by user interaction')
     }
   }
 
@@ -262,10 +309,10 @@ function VideoPlayer() {
           <video
             ref={videoRef}
             src={getVideoStreamUrl(selectedVideo.relPath)}
-            crossOrigin="anonymous"
             preload="metadata"
             playsInline
             controls={false}
+            muted={false}
             onPlay={handlePlay}
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}
@@ -278,6 +325,19 @@ function VideoPlayer() {
               console.error('Video networkState:', video.networkState)
               console.error('Video error code:', video.error?.code)
               console.error('Video error message:', video.error?.message)
+            }}
+            onCanPlay={() => {
+              const video = videoRef.current
+              if (video) {
+                // Ensure audio is not muted and volume is set
+                video.muted = false
+                video.volume = personalSettings.volume
+                console.log('Video can play - Audio setup:', {
+                  muted: video.muted,
+                  volume: video.volume,
+                  hasAudio: video.duration > 0 ? 'Unknown' : 'Checking...'
+                })
+              }
             }}
           >
           </video>
@@ -302,6 +362,15 @@ function VideoPlayer() {
               </div>
 
               <div className="volume-container">
+                {audioBlocked && (
+                  <button 
+                    className="control-button audio-blocked" 
+                    onClick={enableAudio}
+                    title="Click to enable audio"
+                  >
+                    🔇
+                  </button>
+                )}
                 <span>🔊</span>
                 <input
                   type="range"

@@ -252,6 +252,17 @@ main {
   gap: 0.5rem;
 }
 
+.audio-blocked {
+  background: #ff4444 !important;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
 .volume-slider {
   width: 80px;
   height: 4px;

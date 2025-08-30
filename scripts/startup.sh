@@ -61,8 +61,8 @@ if ! command -v caddy >/dev/null 2>&1; then
 fi
 
 # Check if project files exist
-if [ ! -f "package.json" ]; then
-    echo "❌ package.json not found. Are you in the correct directory?"
+if [ ! -f "server/package.json" ]; then
+    echo "❌ server/package.json not found. Are you in the correct directory?"
     exit 1
 fi
 
@@ -86,9 +86,11 @@ echo ""
 
 # Step 3: Install/update dependencies
 echo "3️⃣ Checking Node.js dependencies..."
-if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
+if [ ! -d "server/node_modules" ] || [ "server/package.json" -nt "server/node_modules" ]; then
     echo "📦 Installing/updating dependencies..."
+    cd server
     npm install
+    cd ..
     echo "✅ Dependencies installed"
 else
     echo "✅ Dependencies up to date"
@@ -129,8 +131,10 @@ echo "📽️  Found $media_count media files"
 
 # Start server in background
 echo "🎬 Starting VideoParty server on port 8080..."
-nohup npm start > logs/server.log 2>&1 &
+cd server
+nohup npm start > ../logs/server.log 2>&1 &
 SERVER_PID=$!
+cd ..
 echo "   Server PID: $SERVER_PID"
 
 # Wait for server to start

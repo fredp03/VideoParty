@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "/Users/fredparsons/Documents/Side Projects/Fred Av/VideoParty"
+bash "scripts/automator-shutdown.sh"

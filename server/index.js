@@ -253,9 +253,10 @@ wss.on('connection', (ws, req) => {
       // Broadcast to all other clients in the same room
       const room = rooms.get(message.roomId)
       if (room) {
+        const payload = JSON.stringify(message)
         room.forEach(client => {
           if (client !== ws && client.readyState === client.OPEN) {
-            client.send(data)
+            client.send(payload)
           }
         })
       }

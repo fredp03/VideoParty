@@ -21,9 +21,12 @@ export class WSClient {
           resolve()
         }
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = async (event) => {
           try {
-            const message: WSMessage = JSON.parse(event.data)
+            const raw = typeof event.data === 'string'
+              ? event.data
+              : await (event.data as Blob).text()
+            const message: WSMessage = JSON.parse(raw)
             this.messageHandlers.forEach(handler => handler(message))
           } catch (err) {
             console.error('Failed to parse WebSocket message:', err)

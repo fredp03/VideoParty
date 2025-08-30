@@ -1,6 +1,6 @@
 # VideoParty - Watch Party Web App
 
-A synchronized video watching experience where everyone in a room watches the same content together. Any participant can control playback while personal settings (volume, captions, fullscreen) remain local.
+A synchronized video watching experience where everyone in a room watches the same content together. Any participant can control playbook while personal settings (volume, captions, fullscreen) remain local.
 
 ## ✨ Features
 
@@ -17,7 +17,7 @@ A synchronized video watching experience where everyone in a room watches the sa
 
 ### 1. Automatic Setup
 ```bash
-./setup.sh
+./start-videoparty.sh
 ```
 
 ### 2. Manual Setup
@@ -27,7 +27,7 @@ A synchronized video watching experience where everyone in a room watches the sa
 cd server
 npm install
 cp .env.example .env
-# Edit .env with your media directory
+# Edit .env with your media directory and CORS origin
 npm start
 ```
 
@@ -36,19 +36,21 @@ npm start
 cd web
 npm install
 npm run build
-# Deploy to Netlify
+# Deploy to Netlify with VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org
 ```
 
-### 3. Expose Your Server
+### 3. Dynu + Caddy Setup
 
-**Port Forwarding + Dynamic DNS + Caddy (Production-Ready)**
+**Production-ready deployment with automatic HTTPS:**
 
-1. **Set up Domain/DDNS**:
-   - Get a domain or use DDNS service (DuckDNS, No-IP)
-   - Point it to your public IP address
+1. **Configure Dynu**:
+   - Sign up at https://www.dynu.com
+   - Create A record: `fredav-videoparty.freedns.org` → your public IP
+   - Enable dynamic DNS and note your credentials
+   - See [docs/DYNU_DDNS.md](docs/DYNU_DDNS.md) for detailed setup
 
 2. **Configure Router**:
-   - Port forward TCP 80 and 443 to your server machine
+   - Port forward TCP 80 and 443 to your server machine (10.0.0.102)
    - Enable NAT loopback/hairpin if testing from same network
 
 3. **Install Caddy**:
@@ -63,32 +65,28 @@ npm run build
 4. **Start Services**:
    ```bash
    # Start Node server
-   npm --prefix server run start
+   npm --prefix server start
    
-   # Start Caddy (in project root)
-   caddy run --config ./Caddyfile
+   # Start Caddy reverse proxy
+   sudo caddy run --config ./Caddyfile
+   
+   # Setup Dynu auto-updater
+   bash scripts/dynu-ddns.sh
    ```
-
-5. **Verify Setup**:
-   ```bash
-   curl -I https://watch.example.com/api/health
-   curl -H "Origin: https://myapp.netlify.app" -I https://watch.example.com/media/episode.mp4
-   ```
-
-### 4. Configure Frontend
-Set `VITE_MEDIA_BASE_URL` in Netlify environment variables to your domain URL.
-
-### 5. Update CORS
-Set `ORIGIN` in server `.env` to your Netlify URL.
 
 ## 📁 Project Structure
 
 ```
 VideoParty/
 ├── README.md                 # This file
-├── setup.sh                  # Automated setup script
-├── test.sh                   # Test script
-├── docker-compose.yml        # Docker setup
+├── start-videoparty.sh       # Automated startup script
+├── stop-videoparty.sh        # Service shutdown script
+├── health-check.sh           # System health check
+├── Caddyfile                 # Caddy reverse proxy config
+├── scripts/
+│   └── dynu-ddns.sh          # Dynu dynamic DNS updater
+├── docs/
+│   └── DYNU_DDNS.md          # Dynu setup guide
 ├── web/                      # React frontend
 │   ├── src/components/       # React components
 │   ├── package.json          
@@ -113,15 +111,24 @@ VideoParty/
 
 ### Backend Environment Variables
 ```env
-MEDIA_DIR=/path/to/your/videos    # Required
-PORT=8080                         # Server port
-ORIGIN=https://your-site.netlify.app  # Frontend URL
-SHARED_TOKEN=secret123            # Optional auth token
+MEDIA_DIR=/path/to/your/videos           # Required: path to video files
+PORT=8080                                # Server port (default: 8080)
+ORIGIN=https://fredav.netlify.app        # Frontend URL for CORS
+SHARED_TOKEN=supersecrettoken            # Optional auth token
 ```
 
 ### Frontend Environment Variables
 ```env
-VITE_MEDIA_BASE_URL=https://watch.example.com
+VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org
+```
+
+### Dynu Configuration
+```env
+# .env.ddns
+DYNU_UPDATE_URL="https://api.dynu.com/nic/update?hostname=fredav-videoparty.freedns.org&myip={IP}"
+DYNU_USERNAME="your_dynu_username"
+DYNU_PASSWORD="your_dynu_password"
+DYNU_HOST="fredav-videoparty.freedns.org"
 ```
 
 ## 🎬 Supported Formats
@@ -132,8 +139,8 @@ VITE_MEDIA_BASE_URL=https://watch.example.com
 ## 🧪 Testing
 
 ```bash
-# Run automated tests
-./test.sh
+# Check system health
+./health-check.sh
 
 # Manual test with two browser tabs:
 # 1. Join same room in both tabs
@@ -148,45 +155,94 @@ VITE_MEDIA_BASE_URL=https://watch.example.com
 1. Connect your GitHub repo to Netlify
 2. Set build command: `npm run build`
 3. Set publish directory: `dist`
-4. Add environment variable: `VITE_MEDIA_BASE_URL`
+4. Add environment variable: `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org`
 
 ### Server (Your Machine)
-1. Use Cloudflare Tunnel for secure HTTPS access
-2. Or configure router port forwarding
-3. Keep server running with `pm2` or similar
-
-### Docker (Optional)
-```bash
-# Server only
-docker-compose up
-
-# Or manual
-cd server
-docker build -t videoparty .
-docker run -p 8080:8080 -v /your/media:/media videoparty
-```
+1. Use Dynu + Caddy for secure HTTPS access
+2. Configure router port forwarding (80/443 → 10.0.0.102)
+3. Keep server running with automated startup scripts
 
 ## 🔍 Troubleshooting
 
 **Videos not showing:**
 - Check `MEDIA_DIR` path in server `.env`
 - Verify file permissions
+- Test: `curl -I https://fredav-videoparty.freedns.org/media/test-video.mp4`
 
 **CORS errors:**
-- Ensure `ORIGIN` matches frontend URL exactly
-- Include protocol (http/https)
+- Ensure `ORIGIN` matches Netlify URL exactly
+- Include protocol (https://)
+- Check browser console for specific errors
 
 **Sync issues:**
 - Check network connection
-- Verify WebSocket connection in browser dev tools
+- Verify WebSocket connection: `wss://fredav-videoparty.freedns.org/ws`
+- Test with two browser tabs
 
 **Connection fails:**
-- Test server health: `curl http://localhost:8080/api/health`
-- Check firewall settings
+- Test server health: `curl https://fredav-videoparty.freedns.org/api/health`
+- Check FreeDNS DNS resolution: `dig +short A fredav-videoparty.freedns.org`
+- Verify router port forwarding and firewall settings
 
 ## 📝 API Documentation
 
 See `server/README.md` for detailed API documentation including WebSocket message formats and HTTP endpoints.
+
+## 📋 Go Live Checklist
+
+Before going live, verify these steps:
+
+### 1. DNS & Network
+```bash
+# A record resolves to current WAN IPv4
+dig +short A fredav-videoparty.freedns.org
+curl -4 ifconfig.co  # Should match
+
+# IPv6 disabled unless used
+dig +short AAAA fredav-videoparty.freedns.org  # Should be empty
+```
+
+### 2. Router Configuration
+- [ ] Port 80 (TCP) forwards to 10.0.0.102:80
+- [ ] Port 443 (TCP) forwards to 10.0.0.102:443
+- [ ] Firewall allows inbound connections on these ports
+
+### 3. Services Running
+```bash
+# Caddy running with valid certificate
+curl -I https://fredav-videoparty.freedns.org/api/health
+# Expected: 200 OK with CORS headers
+
+# HTTP redirects to HTTPS
+curl -I http://fredav-videoparty.freedns.org
+# Expected: 301/308 redirect to https://
+```
+
+### 4. Frontend Configuration
+- [ ] Netlify env `VITE_MEDIA_BASE_URL=https://fredav-videoparty.freedns.org`
+- [ ] Build and deploy successful
+
+### 5. Backend Configuration
+- [ ] Server env `ORIGIN=https://fredav.netlify.app`
+- [ ] `SHARED_TOKEN` configured if using authentication
+- [ ] Media directory accessible and populated
+
+### 6. Acceptance Tests
+```bash
+# Range request returns 206 Partial Content
+curl -I -H "Range: bytes=0-1" "https://fredav-videoparty.freedns.org/media/test-video.mp4"
+
+# WebSocket connection works
+# Test in browser: new WebSocket('wss://fredav-videoparty.freedns.org/ws?roomId=test')
+
+# Two-tab sync test passes
+# 1. Open https://fredav.netlify.app in two tabs
+# 2. Join same room in both
+# 3. Play video in one tab
+# 4. Verify sync in other tab within 300ms
+```
+
+**✅ If all tests pass, your VideoParty is ready for production use!**
 
 ## 🤝 Contributing
 

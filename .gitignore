@@ -38,3 +38,7 @@ videos/
 # Temporary files
 tmp/
 temp/
+
+# FreeDNS dynamic DNS
+.env.ddns
+scripts/.last_ip

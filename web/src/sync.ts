@@ -1,23 +1,10 @@
 import { WSMessage } from './types'
 
-// Detect mobile devices for tighter sync
-const isMobile = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-}
-
-// Tighter sync threshold for mobile devices
-export const SYNC_THRESHOLD = isMobile() ? 0.15 : 0.35 // seconds
-
-// More frequent sync for mobile
-export const SYNC_INTERVAL = isMobile() ? 2000 : 5000 // milliseconds
+export const SYNC_THRESHOLD = 0.35 // seconds
 
 export function calculateDriftAdjustedTime(message: WSMessage): number {
-  const networkDelay = (Date.now() - message.sentAtMs) / 1000
-  
-  // Apply mobile-specific compensation
-  const mobileOffset = isMobile() ? 0.05 : 0 // 50ms compensation for mobile processing delay
-  
-  return message.currentTime + networkDelay - mobileOffset
+  const drift = (Date.now() - message.sentAtMs) / 1000
+  return message.currentTime + drift
 }
 
 export function shouldSeekToTime(currentTime: number, targetTime: number): boolean {

@@ -4,6 +4,14 @@ export interface VideoInfo {
   relPath: string
   url: string
   captionsUrl?: string
+  audioCompatible?: boolean
+  audioInfo?: {
+    codec: string
+    channels: number
+    channelLayout: string
+    sampleRate: string
+    bitRate: string
+  }
 }
 
 export interface RoomState {

@@ -8,6 +8,16 @@ const fs = require('fs')
 const mime = require('mime')
 const { glob } = require('glob')
 
+// Import media processing functions
+const mediaProcessor = (() => {
+  try {
+    return require('../scripts/process-media.js')
+  } catch (error) {
+    console.warn('Media processor not available:', error.message)
+    return null
+  }
+})()
+
 const app = express()
 const server = http.createServer(app)
 
@@ -73,25 +83,57 @@ app.get('/api/videos', authMiddleware, async (req, res) => {
     const pattern = `**/*.{${videoExtensions.join(',')}}`
     const files = await glob(pattern, { cwd: MEDIA_DIR, nodir: true })
 
-    const videos = files.map(relPath => {
+    const videos = await Promise.all(files.map(async relPath => {
       const fullPath = path.join(MEDIA_DIR, relPath)
       const parsedPath = path.parse(relPath)
       const captionsPath = path.join(parsedPath.dir, parsedPath.name + '.vtt')
       const captionsFullPath = path.join(MEDIA_DIR, captionsPath)
+      
+      // Check audio compatibility if media processor is available
+      let audioCompatible = true
+      let audioInfo = null
+      
+      if (mediaProcessor) {
+        try {
+          const compatibility = await mediaProcessor.checkAudioCompatibility(fullPath)
+          audioCompatible = compatibility.compatible
+          audioInfo = compatibility.audioInfo
+        } catch (error) {
+          console.warn('Failed to check audio compatibility for', relPath, ':', error.message)
+        }
+      }
       
       return {
         id: Buffer.from(relPath).toString('base64'),
         name: parsedPath.name,
         relPath: relPath,
         url: `/media/${encodeURIComponent(relPath)}`,
-        captionsUrl: fs.existsSync(captionsFullPath) ? `/media/${encodeURIComponent(captionsPath)}` : undefined
+        captionsUrl: fs.existsSync(captionsFullPath) ? `/media/${encodeURIComponent(captionsPath)}` : undefined,
+        audioCompatible,
+        audioInfo
       }
-    })
+    }))
 
     res.json(videos)
   } catch (error) {
     console.error('Error scanning media directory:', error)
     res.status(500).json({ error: 'Failed to scan media directory' })
+  }
+})
+
+// New endpoint to process media compatibility
+app.post('/api/videos/process-compatibility', authMiddleware, async (req, res) => {
+  if (!mediaProcessor) {
+    return res.status(503).json({ error: 'Media processor not available' })
+  }
+
+  try {
+    console.log('Starting media compatibility processing...')
+    await mediaProcessor.processMediaFiles()
+    res.json({ success: true, message: 'Media compatibility processing completed' })
+  } catch (error) {
+    console.error('Media processing failed:', error)
+    res.status(500).json({ error: 'Media processing failed', details: error.message })
   }
 })
 

@@ -99,7 +99,15 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       // Add event listeners to debug video loading
       const handleLoadStart = () => console.log('Video loadstart')
       const handleCanPlay = () => console.log('Video canplay')
-      const handleError = (e: any) => console.error('Video error:', e)
+      const handleError = (e: any) => {
+        console.error('Video error:', e)
+        console.error('Video error details:', {
+          error: videoRef.current?.error,
+          networkState: videoRef.current?.networkState,
+          readyState: videoRef.current?.readyState,
+          src: videoRef.current?.src
+        })
+      }
       
       videoRef.current.addEventListener('loadstart', handleLoadStart)
       videoRef.current.addEventListener('canplay', handleCanPlay)
@@ -155,10 +163,12 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       switch (message.type) {
         case 'loadVideo':
           console.log('Received loadVideo message:', message)
+          console.log('Available videos:', availableVideos)
           if (message.videoUrl) {
             // Extract relative path from URL for lookup
             const relPath = decodeURIComponent(message.videoUrl.replace('/media/', ''))
             console.log('Looking for video with relPath:', relPath)
+            console.log('Available video relPaths:', availableVideos.map(v => v.relPath))
             const video = availableVideos.find(v => v.relPath === relPath)
             console.log('Found video:', video)
             if (video) {
@@ -166,6 +176,8 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
               console.log('Setting received video source to:', video.url)
               videoRef.current.src = video.url
               videoRef.current.load()
+            } else {
+              console.warn('Video not found in available videos list')
             }
           }
           break

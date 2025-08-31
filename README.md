@@ -117,6 +117,9 @@ ORIGIN=https://fredav.netlify.app        # Frontend URL for CORS
 SHARED_TOKEN=supersecrettoken            # Optional auth token
 ```
 
+Clients can send the shared token using the `Authorization` header, a `token` query
+parameter, or a `token` cookie.
+
 ### Frontend Environment Variables
 ```env
 VITE_MEDIA_BASE_URL=https://fredav-videoparty.freeddns.org

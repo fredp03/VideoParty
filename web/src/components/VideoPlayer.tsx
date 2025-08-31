@@ -77,8 +77,9 @@ function VideoPlayer() {
     const video = videoRef.current as AirPlayVideoElement | null
     if (!video || typeof video.addEventListener !== 'function') return
 
-    const handleAirPlayAvailability = (event: WebKitPlaybackTargetAvailabilityEvent) => {
-      setIsAirPlayAvailable(event.availability === 'available')
+    const handleAirPlayAvailability = (event: Event) => {
+      const availability = (event as WebKitPlaybackTargetAvailabilityEvent).availability
+      setIsAirPlayAvailable(availability === 'available')
     }
 
     video.addEventListener('webkitplaybacktargetavailabilitychanged', handleAirPlayAvailability)

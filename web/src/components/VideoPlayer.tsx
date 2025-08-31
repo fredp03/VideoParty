@@ -5,6 +5,14 @@ import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from 
 import { getVideoStreamUrl } from '../api'
 import { WSMessage, VideoInfo } from '../types'
 
+interface AirPlayVideoElement extends HTMLVideoElement {
+  webkitShowPlaybackTargetPicker?: () => void
+}
+
+interface WebKitPlaybackTargetAvailabilityEvent extends Event {
+  availability: string
+}
+
 // Utility function to detect iOS devices
 const isIOS = () => {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -21,6 +29,7 @@ function VideoPlayer() {
   const [lastSyncTime, setLastSyncTime] = useState(0)
   const [audioBlocked, setAudioBlocked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isAirPlayAvailable, setIsAirPlayAvailable] = useState(false)
   
   const {
     selectedVideo,
@@ -60,6 +69,22 @@ function VideoPlayer() {
     return () => {
       video.removeEventListener('webkitbeginfullscreen', handleWebkitFullscreenChange)
       video.removeEventListener('webkitendfullscreen', handleWebkitFullscreenChange)
+    }
+  }, [selectedVideo])
+
+  // Detect AirPlay availability
+  useEffect(() => {
+    const video = videoRef.current as AirPlayVideoElement | null
+    if (!video || typeof video.addEventListener !== 'function') return
+
+    const handleAirPlayAvailability = (event: WebKitPlaybackTargetAvailabilityEvent) => {
+      setIsAirPlayAvailable(event.availability === 'available')
+    }
+
+    video.addEventListener('webkitplaybacktargetavailabilitychanged', handleAirPlayAvailability)
+
+    return () => {
+      video.removeEventListener('webkitplaybacktargetavailabilitychanged', handleAirPlayAvailability)
     }
   }, [selectedVideo])
 
@@ -384,6 +409,13 @@ function VideoPlayer() {
     }
   }
 
+  const startAirPlay = () => {
+    const video = videoRef.current as AirPlayVideoElement | null
+    if (video?.webkitShowPlaybackTargetPicker) {
+      video.webkitShowPlaybackTargetPicker()
+    }
+  }
+
   const toggleTheatreMode = () => {
     updatePersonalSettings({ theatreMode: !personalSettings.theatreMode })
   }
@@ -550,7 +582,7 @@ function VideoPlayer() {
                     CC
                   </button>
                 )}
-                
+
                 <button
                   className={`control-button ${personalSettings.theatreMode ? 'active' : ''}`}
                   onClick={toggleTheatreMode}
@@ -558,6 +590,16 @@ function VideoPlayer() {
                 >
                   🎭
                 </button>
+
+                {isAirPlayAvailable && (
+                  <button
+                    className="control-button"
+                    onClick={startAirPlay}
+                    title="AirPlay"
+                  >
+                    📺
+                  </button>
+                )}
 
                 <button
                   className="control-button"

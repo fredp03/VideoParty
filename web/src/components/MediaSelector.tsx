@@ -48,10 +48,14 @@ const MediaSelector = ({ isVisible, videos, onVideoSelect }: MediaSelectorProps)
           onClick={() => onVideoSelect(video)}
           style={{ cursor: 'pointer' }}
         >
-          <div className="media-title">{video.title}</div>
+          <div className="media-title">{video.name}</div>
           <div className="media-info">
-            {(video.size / (1024 * 1024 * 1024)).toFixed(1)} GB
-            {video.hasCaptions && <span className="captions-badge">CC</span>}
+            {video.audioCompatible ? (
+              <span className="audio-compatible">✓ Compatible</span>
+            ) : (
+              <span className="audio-incompatible">⚠ Audio: {video.audioInfo?.codec} ({video.audioInfo?.channels}ch)</span>
+            )}
+            {video.captionsUrl && <span className="captions-badge">CC</span>}
           </div>
         </div>
       ))}

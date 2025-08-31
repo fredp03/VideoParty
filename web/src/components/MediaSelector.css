@@ -9,7 +9,43 @@
 .media-item {
   background: rgba(0, 0, 0, 0.2);
   color: #cecece;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-radius: 4px;
   font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.media-item:hover {
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+}
+
+.media-title {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.media-info {
+  font-size: 12px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-compatible {
+  color: #4ade80;
+}
+
+.audio-incompatible {
+  color: #fbbf24;
+}
+
+.captions-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: bold;
 }

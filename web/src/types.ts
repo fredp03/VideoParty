@@ -11,10 +11,18 @@ export interface WSMessage {
 
 // Video information from API
 export interface VideoInfo {
+  id: string
+  name: string
   relPath: string
-  title: string
-  size: number
-  hasCaptions: boolean
+  url: string
+  captionsUrl?: string
+  audioCompatible: boolean
+  audioInfo?: {
+    codec: string
+    channels: number
+    channelLayout: string
+    sampleRate: string
+  }
 }
 
 // Personal settings (local to each user)

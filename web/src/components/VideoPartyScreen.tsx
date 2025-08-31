@@ -8,7 +8,7 @@ import ChatSection from './ChatSection.tsx'
 import MediaSelector from './MediaSelector.tsx'
 import type { AppState } from '../App.tsx'
 import type { VideoInfo, WSMessage } from '../types.ts'
-import { fetchVideos, getVideoStreamUrl } from '../api.ts'
+import { fetchVideos } from '../api.ts'
 import { createSyncMessage, calculateDriftAdjustedTime, shouldSeekToTime } from '../sync.ts'
 
 interface VideoPartyScreenProps {
@@ -75,7 +75,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
 
   const handleVideoSelect = (video: VideoInfo) => {
     appState.selectedVideo = video
-    const videoUrl = getVideoStreamUrl(video.relPath)
+    const videoUrl = video.url
     
     if (videoRef.current) {
       videoRef.current.src = videoUrl
@@ -89,7 +89,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
         appState.clientId,
         0,
         true,
-        `/media/${encodeURIComponent(video.relPath)}`
+        video.url
       )
       appState.wsClient.sendMessage(message)
     }
@@ -121,11 +121,12 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       switch (message.type) {
         case 'loadVideo':
           if (message.videoUrl) {
+            // Extract relative path from URL for lookup
             const relPath = decodeURIComponent(message.videoUrl.replace('/media/', ''))
             const video = availableVideos.find(v => v.relPath === relPath)
             if (video) {
               appState.selectedVideo = video
-              videoRef.current.src = getVideoStreamUrl(relPath)
+              videoRef.current.src = video.url
               videoRef.current.load()
             }
           }

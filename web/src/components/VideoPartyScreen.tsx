@@ -74,12 +74,45 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
   }
 
   const handleVideoSelect = (video: VideoInfo) => {
+    console.log('Video selected:', video)
     appState.selectedVideo = video
     const videoUrl = video.url
+    
+    console.log('Setting video source to:', videoUrl)
+    
+    // Test if the URL is accessible
+    fetch(videoUrl, { method: 'HEAD' })
+      .then(response => {
+        console.log('Video URL test response:', response.status, response.statusText)
+        if (!response.ok) {
+          console.error('Video URL not accessible:', response.status)
+        }
+      })
+      .catch(error => {
+        console.error('Video URL test failed:', error)
+      })
     
     if (videoRef.current) {
       videoRef.current.src = videoUrl
       videoRef.current.load()
+      
+      // Add event listeners to debug video loading
+      const handleLoadStart = () => console.log('Video loadstart')
+      const handleCanPlay = () => console.log('Video canplay')
+      const handleError = (e: any) => console.error('Video error:', e)
+      
+      videoRef.current.addEventListener('loadstart', handleLoadStart)
+      videoRef.current.addEventListener('canplay', handleCanPlay)
+      videoRef.current.addEventListener('error', handleError)
+      
+      // Clean up listeners after some time to avoid memory leaks
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('loadstart', handleLoadStart)
+          videoRef.current.removeEventListener('canplay', handleCanPlay)
+          videoRef.current.removeEventListener('error', handleError)
+        }
+      }, 5000)
     }
     
     if (appState.currentRoom) {
@@ -91,6 +124,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
         true,
         video.url
       )
+      console.log('Sending loadVideo message:', message)
       appState.wsClient.sendMessage(message)
     }
     
@@ -120,12 +154,16 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
 
       switch (message.type) {
         case 'loadVideo':
+          console.log('Received loadVideo message:', message)
           if (message.videoUrl) {
             // Extract relative path from URL for lookup
             const relPath = decodeURIComponent(message.videoUrl.replace('/media/', ''))
+            console.log('Looking for video with relPath:', relPath)
             const video = availableVideos.find(v => v.relPath === relPath)
+            console.log('Found video:', video)
             if (video) {
               appState.selectedVideo = video
+              console.log('Setting received video source to:', video.url)
               videoRef.current.src = video.url
               videoRef.current.load()
             }

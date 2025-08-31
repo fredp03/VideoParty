@@ -1,29 +1,6 @@
-export interface VideoInfo {
-  id: string
-  name: string
-  relPath: string
-  url: string
-  captionsUrl?: string
-  audioCompatible?: boolean
-  audioInfo?: {
-    codec: string
-    channels: number
-    channelLayout: string
-    sampleRate: string
-    bitRate: string
-  }
-}
-
-export interface RoomState {
-  currentTime: number
-  paused: boolean
-  videoUrl?: string
-  lastUpdateMs: number
-  initiatorClientId?: string
-}
-
+// WebSocket message types
 export interface WSMessage {
-  type: 'loadVideo' | 'play' | 'pause' | 'seek' | 'timeSync'
+  type: 'play' | 'pause' | 'seek' | 'loadVideo' | 'timeSync'
   roomId: string
   clientId: string
   currentTime: number
@@ -32,6 +9,15 @@ export interface WSMessage {
   videoUrl?: string
 }
 
+// Video information from API
+export interface VideoInfo {
+  relPath: string
+  title: string
+  size: number
+  hasCaptions: boolean
+}
+
+// Personal settings (local to each user)
 export interface PersonalSettings {
   volume: number
   captionsEnabled: boolean

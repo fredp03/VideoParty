@@ -1,4 +1,4 @@
-import { WSMessage } from './types'
+import type { WSMessage } from './types'
 
 export const SYNC_THRESHOLD = 0.35 // seconds
 

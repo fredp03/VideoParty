@@ -1,0 +1,27 @@
+  .video-player {
+    width: 100%;
+    max-width: calc(72vh * 16 / 9); /* Increased from 60vh to 72vh for 20% bigger */
+    box-shadow: 5px 5px 13px rgba(102, 102, 102, 0.90);
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto; /* Center the video player when it's constrained */
+    opacity: 0;
+  }
+
+.video-player::before {
+  content: "";
+  display: block;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio (9/16 * 100) */
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  object-fit: cover;
+}

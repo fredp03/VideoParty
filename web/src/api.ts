@@ -1,4 +1,4 @@
-import { VideoInfo } from './types'
+import type { VideoInfo } from './types'
 
 const BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'http://localhost:8080'
 

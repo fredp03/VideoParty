@@ -1,0 +1,52 @@
+.netflix-party-screen {
+  overflow: hidden;
+  background: #e8e8e8 url('/background-image.png') center/cover no-repeat;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen-container {
+  width: 100%;
+  flex: 1;
+  padding: 50px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 0;
+}
+
+.screen-container.chat-visible {
+  align-items: flex-start;
+}
+
+.horizontal-wrapper {
+  align-self: stretch;
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  min-height: 0;
+}
+
+.media-items {
+  flex: 1;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+  min-height: 0;
+}
+
+.media-items.fullscreen {
+  align-self: stretch;
+  gap: 20px;
+  flex: 1;
+  padding: 14px 20px;
+}

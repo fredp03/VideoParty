@@ -1,4 +1,4 @@
-import { WSMessage } from './types'
+import type { WSMessage } from './types'
 import { getWebSocketUrl } from './api'
 
 export class WSClient {

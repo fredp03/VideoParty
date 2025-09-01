@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { animate } from 'animejs'
 import './VideoPartyScreen.css'
 import MenuBar from './MenuBar.tsx'
@@ -43,7 +43,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
     setShouldRenderChat(false)
   }
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     const newPaused = !isPlaying
     setIsPlaying(!newPaused)
     
@@ -57,9 +57,9 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       )
       appState.wsClient.sendMessage(message)
     }
-  }
+  }, [isPlaying, appState.currentRoom, appState.clientId, appState.wsClient])
 
-  const handleVideoSeek = (newTime: number) => {
+  const handleVideoSeek = useCallback((newTime: number) => {
     if (videoRef.current && appState.currentRoom) {
       videoRef.current.currentTime = newTime
       const message = createSyncMessage(
@@ -71,7 +71,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       )
       appState.wsClient.sendMessage(message)
     }
-  }
+  }, [appState.currentRoom, appState.clientId, appState.wsClient, isPlaying])
 
   const handleVideoSelect = (video: VideoInfo) => {
     console.log('Video selected:', video)
@@ -99,7 +99,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
       // Add event listeners to debug video loading
       const handleLoadStart = () => console.log('Video loadstart')
       const handleCanPlay = () => console.log('Video canplay')
-      const handleError = (e: any) => {
+      const handleError = (e: Event) => {
         console.error('Video error:', e)
         console.error('Video error details:', {
           error: videoRef.current?.error,
@@ -182,30 +182,33 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
           }
           break
 
-        case 'play':
+        case 'play': {
           setIsPlaying(true)
           const playTargetTime = calculateDriftAdjustedTime(message)
           if (shouldSeekToTime(videoRef.current.currentTime, playTargetTime)) {
             videoRef.current.currentTime = playTargetTime
           }
           break
+        }
 
         case 'pause':
           setIsPlaying(false)
           break
 
-        case 'seek':
+        case 'seek': {
           const seekTargetTime = calculateDriftAdjustedTime(message)
           videoRef.current.currentTime = seekTargetTime
           break
+        }
 
-        case 'timeSync':
+        case 'timeSync': {
           if (!isPlaying) return // Don't sync when paused
           const syncTargetTime = calculateDriftAdjustedTime(message)
           if (shouldSeekToTime(videoRef.current.currentTime, syncTargetTime)) {
             videoRef.current.currentTime = syncTargetTime
           }
           break
+        }
       }
     }
 
@@ -286,7 +289,7 @@ const VideoPartyScreen = ({ appState }: VideoPartyScreenProps) => {
 
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [])
+  }, [handleVideoSeek, togglePlayPause])
 
   return (
     <div className="netflix-party-screen">

@@ -28,12 +28,17 @@ const ORIGIN = process.env.ORIGIN || 'http://localhost:5173'
 const SHARED_TOKEN = process.env.SHARED_TOKEN
 
 // CORS middleware with preflight handling
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://fredav.netlify.app'
+]
+
 app.use((req, res, next) => {
   const origin = req.headers.origin
   
-  // Only allow configured origin
-  if (origin === ORIGIN) {
-    res.header('Access-Control-Allow-Origin', ORIGIN)
+  // Allow both development and production origins
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS')
@@ -139,13 +144,16 @@ app.post('/api/videos/process-compatibility', authMiddleware, async (req, res) =
 
 // Handle preflight requests for media endpoint
 app.options('/media/*', (req, res) => {
-  res.set({
-    'Access-Control-Allow-Origin': ORIGIN,
-    'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '86400'
-  });
+  const origin = req.headers.origin
+  if (allowedOrigins.includes(origin)) {
+    res.set({
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400'
+    });
+  }
   res.status(200).end();
 });
 
@@ -171,15 +179,22 @@ app.get('/media/*', authMiddleware, (req, res) => {
     const fileSize = stat.size
     const mimeType = mime.getType(fullPath) || 'application/octet-stream'
 
-    res.set({
+    // Set CORS headers dynamically based on request origin
+    const origin = req.headers.origin
+    const corsHeaders = {
       'Content-Type': mimeType,
       'Accept-Ranges': 'bytes',
-      'Access-Control-Allow-Origin': ORIGIN,
       'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Expose-Headers': 'Accept-Ranges, Content-Length, Content-Range',
       'Access-Control-Allow-Credentials': 'true'
-    })
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      corsHeaders['Access-Control-Allow-Origin'] = origin
+    }
+    
+    res.set(corsHeaders)
 
     // Handle Range requests for video streaming
     const range = req.headers.range

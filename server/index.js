@@ -226,8 +226,8 @@ const roomStates = new Map() // roomId -> { videoUrl, videoRelPath, currentTime,
 
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
-  const roomId = url.searchParams.get('roomId')
-  const clientId = url.searchParams.get('clientId')
+  const roomId = url.searchParams.get('roomId') || 'main'
+  const clientId = url.searchParams.get('clientId') || Math.random().toString(36).substring(7)
   const token = url.searchParams.get('token')
 
   // Auth check for WebSocket
@@ -236,10 +236,7 @@ wss.on('connection', (ws, req) => {
     return
   }
 
-  if (!roomId || !clientId) {
-    ws.close(1008, 'Missing roomId or clientId')
-    return
-  }
+  // No room selection needed; all clients share a single main room
 
   // Add client to room
   if (!rooms.has(roomId)) {

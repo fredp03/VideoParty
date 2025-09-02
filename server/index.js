@@ -336,7 +336,9 @@ wss.on('connection', (ws, req) => {
       currentTime = existingState.currentTime + timeSinceUpdate
     }
     
-    const baseMessage = {
+    // Send a single comprehensive sync message
+    const syncMessage = {
+      type: 'loadVideo',
       roomId,
       clientId: 'server',
       currentTime: currentTime,
@@ -345,15 +347,8 @@ wss.on('connection', (ws, req) => {
       videoUrl: existingState.videoUrl
     }
     
-    // Send loadVideo message first
-    const loadVideoMessage = { ...baseMessage, type: 'loadVideo' }
-    ws.send(JSON.stringify(loadVideoMessage))
-    
-    // Then send timeSync to ensure proper position
-    setTimeout(() => {
-      const timeSyncMessage = { ...baseMessage, type: 'timeSync', sentAtMs: Date.now() }
-      ws.send(JSON.stringify(timeSyncMessage))
-    }, 100)
+    // Send immediately without delay
+    ws.send(JSON.stringify(syncMessage))
   }
 
   ws.on('message', (data) => {
@@ -379,14 +374,18 @@ wss.on('connection', (ws, req) => {
           console.log(`Room ${message.roomId} video changed to:`, message.videoUrl)
         }
         
-        currentState.currentTime = message.currentTime
-        currentState.paused = message.paused
-        currentState.lastUpdateMs = Date.now()
-        roomStates.set(message.roomId, currentState)
-        
-        // Log room state updates for debugging
-        if (message.type === 'loadVideo') {
-          console.log(`Room ${message.roomId} state updated:`, currentState)
+        // Only update state if this is a control message (not timeSync)
+        if (message.type !== 'timeSync') {
+          currentState.currentTime = message.currentTime
+          currentState.paused = message.paused
+          currentState.lastUpdateMs = Date.now()
+          roomStates.set(message.roomId, currentState)
+          
+          console.log(`Room ${message.roomId} state updated by ${message.clientId}:`, {
+            type: message.type,
+            currentTime: currentState.currentTime,
+            paused: currentState.paused
+          })
         }
       }
 

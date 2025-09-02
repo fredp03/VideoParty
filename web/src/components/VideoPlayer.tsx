@@ -1,7 +1,13 @@
 import { useRef, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAppStore } from '../App'
-import { calculateDriftAdjustedTime, shouldSeekToTime, createSyncMessage } from '../sync'
+import { 
+  calculateDriftAdjustedTime, 
+  shouldSeekToTime, 
+  createSyncMessage, 
+  canSendSyncMessage,
+  PERIODIC_SYNC_INTERVAL 
+} from '../sync'
 import { getVideoStreamUrl } from '../api'
 import { WSMessage, VideoInfo } from '../types'
 
@@ -199,12 +205,19 @@ function VideoPlayer() {
       }
 
       const targetTime = calculateDriftAdjustedTime(message)
+      const timeDiff = Math.abs(video.currentTime - targetTime)
+
+      console.log(`Applying ${message.type} from ${message.clientId}:`, {
+        current: video.currentTime.toFixed(2),
+        target: targetTime.toFixed(2),
+        diff: timeDiff.toFixed(2),
+        paused: message.paused
+      })
 
       switch (message.type) {
         case 'loadVideo':
-          if (shouldSeekToTime(video.currentTime, targetTime)) {
-            video.currentTime = targetTime
-          }
+          // Always seek for loadVideo to ensure proper sync
+          video.currentTime = targetTime
           if (message.paused) {
             if (!video.paused) {
               video.pause()
@@ -217,6 +230,7 @@ function VideoPlayer() {
           break
 
         case 'play':
+          // Seek only if significantly out of sync
           if (shouldSeekToTime(video.currentTime, targetTime)) {
             video.currentTime = targetTime
           }
@@ -226,6 +240,7 @@ function VideoPlayer() {
           break
 
         case 'pause':
+          // Seek only if significantly out of sync
           if (shouldSeekToTime(video.currentTime, targetTime)) {
             video.currentTime = targetTime
           }
@@ -235,26 +250,38 @@ function VideoPlayer() {
           break
 
         case 'seek':
+          // Always seek for explicit seek commands
           video.currentTime = targetTime
           break
 
         case 'timeSync':
-          if (shouldSeekToTime(video.currentTime, targetTime)) {
+          // Only seek if significantly out of sync and video is playing
+          if (!video.paused && shouldSeekToTime(video.currentTime, targetTime)) {
+            console.log('Correcting sync drift:', {
+              from: video.currentTime.toFixed(2),
+              to: targetTime.toFixed(2)
+            })
             video.currentTime = targetTime
           }
           break
       }
     } finally {
-      setTimeout(() => setIsApplyingRemote(false), 100)
+      // Shorter delay to reduce lag
+      setTimeout(() => setIsApplyingRemote(false), 50)
     }
   }
 
-  // Send sync message
+  // Send sync message with throttling
   const sendSyncMessage = (type: WSMessage['type'], time?: number) => {
     if (!roomId || isApplyingRemote) return
 
     const video = videoRef.current
     if (!video) return
+
+    // Check if we can send sync message (throttling)
+    if (!canSendSyncMessage(roomId, clientId)) {
+      return
+    }
 
     const message = createSyncMessage(
       type,
@@ -285,9 +312,9 @@ function VideoPlayer() {
 
     setCurrentTime(video.currentTime)
 
-    // Send periodic sync if playing (every 5 seconds)
+    // Send periodic sync if playing (every 10 seconds instead of 5)
     const now = Date.now()
-    if (!video.paused && now - lastSyncTime > 5000) {
+    if (!video.paused && now - lastSyncTime > PERIODIC_SYNC_INTERVAL) {
       setLastSyncTime(now)
       sendSyncMessage('timeSync')
     }

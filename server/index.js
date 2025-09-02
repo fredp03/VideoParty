@@ -177,7 +177,16 @@ app.get('/media/*', authMiddleware, (req, res) => {
 
     const stat = fs.statSync(fullPath)
     const fileSize = stat.size
-    const mimeType = mime.getType(fullPath) || 'application/octet-stream'
+    let mimeType = mime.getType(fullPath) || 'application/octet-stream'
+    
+    // Safari-specific MIME type fixes
+    const userAgent = req.headers['user-agent'] || ''
+    const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome')
+    
+    if (isSafari && mimeType === 'video/mp4') {
+      // Force Safari to treat as MP4 video
+      mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
+    }
 
     // Set CORS headers dynamically based on request origin
     const origin = req.headers.origin
@@ -187,7 +196,15 @@ app.get('/media/*', authMiddleware, (req, res) => {
       'Access-Control-Allow-Headers': 'Range, Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Expose-Headers': 'Accept-Ranges, Content-Length, Content-Range',
-      'Access-Control-Allow-Credentials': 'true'
+      'Access-Control-Allow-Credentials': 'true',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+    
+    // Safari-specific headers
+    if (isSafari) {
+      corsHeaders['X-Content-Type-Options'] = 'nosniff'
+      corsHeaders['Content-Disposition'] = 'inline'
     }
     
     if (allowedOrigins.includes(origin)) {
@@ -201,13 +218,25 @@ app.get('/media/*', authMiddleware, (req, res) => {
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-')
       const start = parseInt(parts[0], 10)
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
+      let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
       
+      // Safari sometimes sends invalid ranges, so clamp them
       if (start >= fileSize) {
         res.status(416).set({
           'Content-Range': `bytes */${fileSize}`
         })
         return res.end()
+      }
+      
+      // Ensure end doesn't exceed file size
+      if (end >= fileSize) {
+        end = fileSize - 1
+      }
+      
+      // Safari prefers smaller chunk sizes
+      if (isSafari && !parts[1]) {
+        // If no end specified and Safari, send first chunk
+        end = Math.min(start + 1024 * 1024, fileSize - 1) // 1MB chunks for Safari
       }
 
       const chunkSize = (end - start) + 1
@@ -218,11 +247,34 @@ app.get('/media/*', authMiddleware, (req, res) => {
         'Content-Length': chunkSize
       })
 
+      stream.on('error', (err) => {
+        console.error('Stream error:', err)
+        if (!res.headersSent) {
+          res.status(500).end()
+        }
+      })
+
       stream.pipe(res)
     } else {
-      // Send entire file
-      res.set('Content-Length', fileSize)
+      // For Safari, always suggest range support even for full file requests
+      if (isSafari) {
+        res.status(206).set({
+          'Content-Range': `bytes 0-${fileSize - 1}/${fileSize}`,
+          'Content-Length': fileSize
+        })
+      } else {
+        res.set('Content-Length', fileSize)
+      }
+      
       const stream = fs.createReadStream(fullPath)
+      
+      stream.on('error', (err) => {
+        console.error('Stream error:', err)
+        if (!res.headersSent) {
+          res.status(500).end()
+        }
+      })
+      
       stream.pipe(res)
     }
   } catch (error) {

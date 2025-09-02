@@ -77,10 +77,26 @@ echo ""
 # Step 2: Update DNS (if needed)
 echo "2️⃣ Updating DNS record..."
 if [ -f "scripts/dynu-ddns.sh" ] && [ -f ".env.ddns" ]; then
-    bash scripts/dynu-ddns.sh
-    echo "✅ DNS update completed"
+    bash scripts/dynu-ddns.sh || true
+    echo "✅ DNS update attempted"
 else
     echo "⚠️  DNS update script not found, skipping..."
+fi
+echo ""
+
+# Step 2b: Validate DNS resolves to current public IP
+echo "🔎 Validating DNS A record..."
+PUBLIC_IP=$(curl -4 -fsS --max-time 10 https://ifconfig.co || true)
+RESOLVED_IP=$(dig +short fredav-videoparty.freeddns.org A @1.1.1.1 | head -1 || true)
+if [ -n "$PUBLIC_IP" ] && [ -n "$RESOLVED_IP" ]; then
+    if [ "$PUBLIC_IP" != "$RESOLVED_IP" ]; then
+        echo "⚠️  DNS mismatch: public IP is $PUBLIC_IP but DNS resolves to $RESOLVED_IP"
+        echo "   Web clients may fail TLS until DNS propagates."
+    else
+        echo "✅ DNS A record matches current public IP ($PUBLIC_IP)"
+    fi
+else
+    echo "⚠️  Unable to validate DNS/IP fully (PUBLIC_IP='$PUBLIC_IP', RESOLVED_IP='$RESOLVED_IP')"
 fi
 echo ""
 
@@ -225,8 +241,19 @@ echo "   Local API:    http://localhost:8080"
 echo ""
 echo "📋 Management:"
 echo "   Status:       ./scripts/health-check.sh"
-echo "   Stop All:     ./scripts/shutdown.sh"
+echo "   Stop All:     ./stop-videoparty.sh"
 echo "   Logs:         tail -f logs/server.log"
 echo "                 tail -f logs/caddy.log"
 echo ""
 echo "✅ System is ready for use!"
+
+# Optional quick WebSocket check (local)
+sleep 1
+echo ""
+echo "🧪 Quick TLS sanity:"
+if curl -Iv --max-time 8 --resolve fredav-videoparty.freeddns.org:443:127.0.0.1 https://fredav-videoparty.freeddns.org/api/health >/dev/null 2>&1; then
+    echo "   ✅ Local TLS/Cert OK via Caddy"
+else
+    echo "   ❌ Local TLS probe failed (check logs/caddy.log)"
+fi
+

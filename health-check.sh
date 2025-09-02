@@ -76,7 +76,7 @@ echo
 
 # Check public endpoints
 print_status "Checking public endpoints..."
-check_service "https://fredav-videoparty.duckdns.org/api/health" "Public API"
+check_service "https://fredav-videoparty.freeddns.org/api/health" "Public API"
 
 echo
 

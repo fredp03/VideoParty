@@ -11,9 +11,14 @@ fredav-videoparty.freeddns.org {
     X-Content-Type-Options "nosniff"
     Referrer-Policy "no-referrer"
     Permissions-Policy "autoplay=(), fullscreen=(), microphone=()"
-    # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"  # enable after first cert
+  # Enable HSTS once you're sure HTTPS works everywhere:
+  # Strict-Transport-Security "max-age=31536000; includeSubDomains"
   }
 
-  # Reverse proxy to local Node server
-  reverse_proxy localhost:8080
+  # Reverse proxy to local Node server with health checks
+  reverse_proxy localhost:8080 {
+    health_uri /api/health
+    health_interval 30s
+    health_timeout 5s
+  }
 }

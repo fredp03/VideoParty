@@ -28,24 +28,22 @@ const ORIGIN = process.env.ORIGIN || 'http://localhost:5173'
 const SHARED_TOKEN = process.env.SHARED_TOKEN
 
 // CORS middleware with preflight handling
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://fredav.netlify.app'
+]
 app.use((req, res, next) => {
   const origin = req.headers.origin
-  
-  // Only allow configured origin
-  if (origin === ORIGIN) {
-    res.header('Access-Control-Allow-Origin', ORIGIN)
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
   }
-  
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.header('Access-Control-Allow-Headers', 'Authorization, Range, Content-Type')
   res.header('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range')
   res.header('Access-Control-Allow-Credentials', 'true')
-  
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(204).end()
   }
-  
   next()
 })
 
@@ -365,7 +363,7 @@ app.use((err, req, res, next) => {
 })
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`VideoParty server running on port ${PORT}`)
   console.log(`Media directory: ${path.resolve(MEDIA_DIR)}`)
   console.log(`CORS origin: ${ORIGIN}`)
